@@ -72,9 +72,13 @@ static NSManagedObjectContext *_mainQueueContext;
    return [[[self applicationDocumentsDirectory] URLByAppendingPathComponent:[self baseName]] URLByAppendingPathExtension:@"sqlite"];
 }
 
++ (NSURL*)urlForStoreName:(NSString *)storeName {
+    return [[[self applicationDocumentsDirectory] URLByAppendingPathComponent:storeName] URLByAppendingPathExtension:@"sqlite"];
+}
+
 #pragma mark - Core Data Setup
 
-+ (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute {
++ (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute withStoreName:(NSString *)storeName {
     // setup our object model and persistent store
     _managedObjectModel = [NSManagedObjectModel mergedModelFromBundles:nil];
     
@@ -91,13 +95,13 @@ static NSManagedObjectContext *_mainQueueContext;
                               NSSQLitePragmasOption: @{@"journal_mode": @"WAL"}
                               };
     
-    NSURL *storeURL = [self storeURL];
+    NSURL *storeURL = storeName ? [self urlForStoreName:storeName] : [self storeURL];
     
     if (shouldAddDoNotBackupAttribute) {
         // add do not backup flag
         [storeURL addSkipBackupAttribute];
     }
-
+    
     // attempt to create the store
     NSError *error = nil;
     _persistentStore = [coordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:options error:&error];
@@ -111,11 +115,15 @@ static NSManagedObjectContext *_mainQueueContext;
     
     _privateQueueContext = [[NSManagedObjectContext alloc] initWithConcurrencyType:NSPrivateQueueConcurrencyType];
     [_privateQueueContext setPersistentStoreCoordinator:coordinator];
-	_privateQueueContext.undoManager = nil;
+    _privateQueueContext.undoManager = nil;
     
     _mainQueueContext = [[NSManagedObjectContext alloc] initWithConcurrencyType:NSMainQueueConcurrencyType];
     [_mainQueueContext setParentContext:_privateQueueContext];
-	_mainQueueContext.undoManager = nil;
+    _mainQueueContext.undoManager = nil;
+}
+
++ (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute {
+    [self setupAutoMigratingCoreDataStack:shouldAddDoNotBackupAttribute withStoreName:nil];
 }
 
 + (void)setupAutoMigratingCoreDataStackWithDoNotBackupAttribute {

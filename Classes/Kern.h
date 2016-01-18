@@ -59,6 +59,8 @@ extern NSString * const kKernDefaultStoreFileName;
 + (NSManagedObjectContext*)sharedThreadedContext;
 + (NSURL*)storeURL;
 
+
++ (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute withStoreName:(NSString *)storeName;
 + (void)setupAutoMigratingCoreDataStackWithDoNotBackupAttribute;
 + (void)setupAutoMigratingCoreDataStack;
 + (void)setupInMemoryStoreCoreDataStack;

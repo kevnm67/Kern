@@ -59,8 +59,12 @@ extern NSString * const kKernDefaultStoreFileName;
 + (NSManagedObjectContext*)sharedThreadedContext;
 + (NSURL*)storeURL;
 
-
-+ (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute withStoreName:(NSString *)storeName;
+/**
+ *  Configure an auto migrating core data stack with the name of the SQLite file provided in the main bundle.
+ *
+ *  @param storeName Name of the SQLite store file.
+ */
++ (void)setupCoreDataStackWithAutoMigratingSqliteStoreNamed:(NSString *)storeName;
 + (void)setupAutoMigratingCoreDataStackWithDoNotBackupAttribute;
 + (void)setupAutoMigratingCoreDataStack;
 + (void)setupInMemoryStoreCoreDataStack;

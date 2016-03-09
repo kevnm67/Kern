@@ -48,7 +48,7 @@ static NSManagedObjectContext *_mainQueueContext;
 #pragma mark - Path Helpers
 
 + (NSString *)baseName {
-    NSString *defaultName = [[[NSBundle bundleForClass:[self class]] infoDictionary] valueForKey:(id)kCFBundleNameKey];
+    NSString *defaultName = [[[NSBundle mainBundle] infoDictionary] valueForKey:(id)kCFBundleNameKey];
 
     return (defaultName != nil) ? defaultName : kKernDefaultBaseName;
 }
@@ -69,7 +69,7 @@ static NSManagedObjectContext *_mainQueueContext;
 
 // Return the full path to the data store
 + (NSURL*)storeURL {
-   return [[[self applicationDocumentsDirectory] URLByAppendingPathComponent:[self baseName]] URLByAppendingPathExtension:@"sqlite"];
+    return [self urlForStoreName:[self baseName]];
 }
 
 + (NSURL*)urlForStoreName:(NSString *)storeName {
@@ -94,7 +94,7 @@ static NSManagedObjectContext *_mainQueueContext;
                               NSInferMappingModelAutomaticallyOption: @YES,
                               NSSQLitePragmasOption: @{@"journal_mode": @"WAL"}
                               };
-    
+    // If the name of the persistent store if provided, use it, otherwise use the name of the application for the store file name.
     NSURL *storeURL = storeName ? [self urlForStoreName:storeName] : [self storeURL];
     
     if (shouldAddDoNotBackupAttribute) {
@@ -107,7 +107,7 @@ static NSManagedObjectContext *_mainQueueContext;
     _persistentStore = [coordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:options error:&error];
     
     if (!_persistentStore || error) {
-        NSLog(@"Unable to create persistent store! %@, %@", error, [error userInfo]);
+        NSLog(@"Unable to create persistent store! %@, %@", error, error.userInfo);
     }
     
     
@@ -120,6 +120,10 @@ static NSManagedObjectContext *_mainQueueContext;
     _mainQueueContext = [[NSManagedObjectContext alloc] initWithConcurrencyType:NSMainQueueConcurrencyType];
     [_mainQueueContext setParentContext:_privateQueueContext];
     _mainQueueContext.undoManager = nil;
+}
+
++ (void) setupCoreDataStackWithAutoMigratingSqliteStoreNamed:(NSString *)storeName {
+    [self setupAutoMigratingCoreDataStack:NO withStoreName:storeName];
 }
 
 + (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute {

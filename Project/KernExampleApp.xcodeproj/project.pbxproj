@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0198580D1BED31F3007B6B86 /* Problem.m in Sources */ = {isa = PBXBuildFile; fileRef = 0198580C1BED31F3007B6B86 /* Problem.m */; settings = {ASSET_TAGS = (); }; };
+		0198580D1BED31F3007B6B86 /* Problem.m in Sources */ = {isa = PBXBuildFile; fileRef = 0198580C1BED31F3007B6B86 /* Problem.m */; };
 		439A16001BD9A51E00F6E0E2 /* Dude.m in Sources */ = {isa = PBXBuildFile; fileRef = 439A15FF1BD9A51E00F6E0E2 /* Dude.m */; };
 		85B0152DE5F54FD1A842F03D /* libPods-KernExampleApp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 124E5B52AB31455D9B705DFA /* libPods-KernExampleApp.a */; };
 		AB7C9368186CAF9A00CBB08D /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7C9367186CAF9A00CBB08D /* Foundation.framework */; };
@@ -30,6 +30,7 @@
 		AB7C939C186CAF9A00CBB08D /* KernExampleAppTests.m in Sources */ = {isa = PBXBuildFile; fileRef = AB7C939B186CAF9A00CBB08D /* KernExampleAppTests.m */; };
 		AB7C93E1186CC89800CBB08D /* User.m in Sources */ = {isa = PBXBuildFile; fileRef = AB7C93E0186CC89800CBB08D /* User.m */; };
 		ABC87F9875224584AB05F9C4 /* libPods-KernExampleAppTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 92069192FF194F2B8A5C46F1 /* libPods-KernExampleAppTests.a */; };
+		B8D749C71C90765D0056E74E /* TestStore.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = B8D749C61C90765D0056E74E /* TestStore.sqlite */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -79,6 +80,7 @@
 		AB7C93E0186CC89800CBB08D /* User.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = User.m; sourceTree = "<group>"; };
 		ABC11CB61877575C00C0FF73 /* KernExampleApp v2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = "KernExampleApp v2.xcdatamodel"; sourceTree = "<group>"; };
 		B85E5CBEBA194BE5C5E976C0 /* Pods-KernExampleApp.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-KernExampleApp.release.xcconfig"; path = "Pods/Target Support Files/Pods-KernExampleApp/Pods-KernExampleApp.release.xcconfig"; sourceTree = "<group>"; };
+		B8D749C61C90765D0056E74E /* TestStore.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = TestStore.sqlite; sourceTree = "<group>"; };
 		EEC03AE985791D2BCD9DE0D5 /* Pods-KernExampleAppTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-KernExampleAppTests.release.xcconfig"; path = "Pods/Target Support Files/Pods-KernExampleAppTests/Pods-KernExampleAppTests.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -181,6 +183,7 @@
 		AB7C9370186CAF9A00CBB08D /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				B8D749C61C90765D0056E74E /* TestStore.sqlite */,
 				AB7C9371186CAF9A00CBB08D /* KernExampleApp-Info.plist */,
 				AB7C9372186CAF9A00CBB08D /* InfoPlist.strings */,
 				AB7C9375186CAF9A00CBB08D /* main.m */,
@@ -292,6 +295,7 @@
 			files = (
 				AB7C9388186CAF9A00CBB08D /* Images.xcassets in Resources */,
 				AB7C9374186CAF9A00CBB08D /* InfoPlist.strings in Resources */,
+				B8D749C71C90765D0056E74E /* TestStore.sqlite in Resources */,
 				AB7C937D186CAF9A00CBB08D /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

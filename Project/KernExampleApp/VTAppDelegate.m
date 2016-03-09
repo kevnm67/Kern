@@ -17,8 +17,10 @@
 {
 
     // Setup Kern
-    [Kern setupAutoMigratingCoreDataStack];
+//    [Kern setupAutoMigratingCoreDataStack];
 
+    [Kern setupCoreDataStackWithAutoMigratingSqliteStoreNamed:@"TestStore"];
+    
     // Override point for customization after application launch.
     UINavigationController *navigationController = (UINavigationController *)self.window.rootViewController;
     VTMasterViewController *controller = (VTMasterViewController *)navigationController.topViewController;

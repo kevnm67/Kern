@@ -49,15 +49,16 @@
 #import "NSManagedObject+Kern.h"
 #import "NSString+Kern.h"
 
-extern NSString * const kKernDefaultStoreFileName;
+extern NSString *const kKernDefaultStoreFileName;
 #define kKernDefaultBatchSize 20
 
 @interface Kern : NSObject
 
-+ (NSManagedObjectModel*)sharedModel;
-+ (NSManagedObjectContext*)sharedContext;
-+ (NSManagedObjectContext*)sharedThreadedContext;
-+ (NSURL*)storeURL;
++ (NSManagedObjectModel *)sharedModel;
++ (NSManagedObjectContext *)sharedContext;
++ (NSManagedObjectContext *)sharedThreadedContext;
++ (NSURL *)storeURL;
++ (NSURL *)urlForStoreName:(NSString *)storeName;
 
 /**
  *  Configure an auto migrating core data stack with the name of the SQLite file provided in the main bundle.
@@ -72,8 +73,8 @@ extern NSString * const kKernDefaultStoreFileName;
 
 + (BOOL)saveContext;
 
-+ (NSFetchRequest*)kern_fetchRequestForEntityName:(NSString*)entityName condition:(id)condition sort:(id)sort limit:(NSUInteger)limit;
-+ (NSUInteger)kern_countForFetchRequest:(NSFetchRequest*)fetchRequest;
-+ (NSArray*)kern_executeFetchRequest:(NSFetchRequest*)fetchRequest;
++ (NSFetchRequest *)kern_fetchRequestForEntityName:(NSString *)entityName condition:(id)condition sort:(id)sort limit:(NSUInteger)limit;
++ (NSUInteger)kern_countForFetchRequest:(NSFetchRequest *)fetchRequest;
++ (NSArray *)kern_executeFetchRequest:(NSFetchRequest *)fetchRequest;
 
 @end

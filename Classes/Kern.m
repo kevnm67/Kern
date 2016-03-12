@@ -45,11 +45,20 @@ static NSManagedObjectContext *_mainQueueContext;
 	 return _mainQueueContext;
 }
 
++ (NSDictionary *)defaultMigrationOptions {
+    // define the auto migration features
+    return @{
+             NSMigratePersistentStoresAutomaticallyOption: @YES,
+             NSInferMappingModelAutomaticallyOption: @YES,
+             NSSQLitePragmasOption: @{@"journal_mode": @"WAL"}
+             };
+}
+
 #pragma mark - Path Helpers
 
 + (NSString *)baseName {
-    NSString *defaultName = [[[NSBundle mainBundle] infoDictionary] valueForKey:(id)kCFBundleNameKey];
-
+    NSString *defaultName = [[[NSBundle bundleForClass:[NSBundle mainBundle].class] infoDictionary] valueForKey:(id)kCFBundleNameKey];
+    
     return (defaultName != nil) ? defaultName : kKernDefaultBaseName;
 }
 
@@ -78,22 +87,33 @@ static NSManagedObjectContext *_mainQueueContext;
 
 #pragma mark - Core Data Setup
 
++ (void) setupCoreDataStackWithAutoMigratingSqliteStoreNamed:(NSString *)storeName {
+    // Set the default data store (ie pre-loaded SQL file) as initial store
+    [self setInitialDataStoreNamed:storeName];
+    [self setupAutoMigratingCoreDataStack:NO withStoreName:storeName];
+}
+
++ (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute {
+    [self setupAutoMigratingCoreDataStack:shouldAddDoNotBackupAttribute withStoreName:nil];
+}
+
++ (void)setupAutoMigratingCoreDataStack {
+    [self setupAutoMigratingCoreDataStack:NO];
+}
+
++ (void)setupAutoMigratingCoreDataStackWithDoNotBackupAttribute {
+    [self setupAutoMigratingCoreDataStack:YES];
+}
+
 + (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute withStoreName:(NSString *)storeName {
     // setup our object model and persistent store
     _managedObjectModel = [NSManagedObjectModel mergedModelFromBundles:nil];
     
     NSPersistentStoreCoordinator *coordinator = [[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel:_managedObjectModel];
     
-    
     // create the folder if we need it
     [self createApplicationSupportDirIfNeeded];
-    
-    // define the auto migration features
-    NSDictionary *options = @{
-                              NSMigratePersistentStoresAutomaticallyOption: @YES,
-                              NSInferMappingModelAutomaticallyOption: @YES,
-                              NSSQLitePragmasOption: @{@"journal_mode": @"WAL"}
-                              };
+
     // If the name of the persistent store if provided, use it, otherwise use the name of the application for the store file name.
     NSURL *storeURL = storeName ? [self urlForStoreName:storeName] : [self storeURL];
     
@@ -104,7 +124,7 @@ static NSManagedObjectContext *_mainQueueContext;
     
     // attempt to create the store
     NSError *error = nil;
-    _persistentStore = [coordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:options error:&error];
+    _persistentStore = [coordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:[self defaultMigrationOptions] error:&error];
     
     if (!_persistentStore || error) {
         NSLog(@"Unable to create persistent store! %@, %@", error, error.userInfo);
@@ -122,42 +142,19 @@ static NSManagedObjectContext *_mainQueueContext;
     _mainQueueContext.undoManager = nil;
 }
 
-+ (void) setupCoreDataStackWithAutoMigratingSqliteStoreNamed:(NSString *)storeName {
-    [self setupAutoMigratingCoreDataStack:NO withStoreName:storeName];
-}
-
-+ (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute {
-    [self setupAutoMigratingCoreDataStack:shouldAddDoNotBackupAttribute withStoreName:nil];
-}
-
-+ (void)setupAutoMigratingCoreDataStackWithDoNotBackupAttribute {
-    [self setupAutoMigratingCoreDataStack:YES];
-}
-
-+ (void)setupAutoMigratingCoreDataStack {
-    [self setupAutoMigratingCoreDataStack:NO];
-}
-
-+ (void)setupInMemoryStoreCoreDataStack {
++ (void)setupInMemoryStoreCoreDataStack
+{
     // setup our object model and persistent store
     _managedObjectModel = [NSManagedObjectModel mergedModelFromBundles:nil];
     
     NSPersistentStoreCoordinator *coordinator = [[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel:_managedObjectModel];
     
-    
     // create the folder if we need it
     [self createApplicationSupportDirIfNeeded];
-    
-    // define the auto migration features
-    NSDictionary *options = @{
-                              NSMigratePersistentStoresAutomaticallyOption: @YES,
-                              NSInferMappingModelAutomaticallyOption: @YES,
-                              NSSQLitePragmasOption: @{@"journal_mode": @"WAL"}
-                              };
-    
+  
     // attempt to create the store
     NSError *error = nil;
-    _persistentStore = [coordinator addPersistentStoreWithType:NSInMemoryStoreType configuration:nil URL:nil options:options error:&error];
+    _persistentStore = [coordinator addPersistentStoreWithType:NSInMemoryStoreType configuration:nil URL:nil options:[self defaultMigrationOptions] error:&error];
     
     if (!_persistentStore || error) {
         NSLog(@"Unable to create persistent store! %@, %@", error, [error userInfo]);
@@ -170,6 +167,26 @@ static NSManagedObjectContext *_mainQueueContext;
     
     _mainQueueContext = [[NSManagedObjectContext alloc] initWithConcurrencyType:NSMainQueueConcurrencyType];
     [_mainQueueContext setParentContext:_privateQueueContext];
+}
+
++ (void)setInitialDataStoreNamed:(NSString *)defaultStore
+{
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    
+    if (![fileManager fileExistsAtPath:self.storeURL.path]) {
+        
+        NSURL *defaultDataURL = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:defaultStore ofType:@"sqlite"]];
+        NSURL *destinationURL = [self urlForStoreName:defaultStore];
+        
+        NSError *error;
+        
+        if (![fileManager copyItemAtURL:defaultDataURL toURL:destinationURL error:&error]) {
+            NSLog(@"Failed to initial SQLite store:\t %@ \nError: %@", defaultStore, error.localizedDescription);
+        }
+        else {
+            NSLog(@"A copy of %@ was set as the initial store for \n%@", defaultStore, destinationURL.path);
+        }
+    }
 }
 
 + (void)cleanUp {

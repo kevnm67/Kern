@@ -77,4 +77,16 @@ extern NSString *const kKernDefaultStoreFileName;
 + (NSUInteger)kern_countForFetchRequest:(NSFetchRequest *)fetchRequest;
 + (NSArray *)kern_executeFetchRequest:(NSFetchRequest *)fetchRequest;
 
+/**
+ *  Drop the current SQLite database including wal and journal files.
+ */
++ (void)drop;
+
+/**
+ *  Drop the specified SQLite backing store including wal and journal files.
+ *
+ *  @param sqliteName NSString name of the SQLite database file.
+ */
++ (void)dropDatabase:(NSString *)sqliteName;
+
 @end

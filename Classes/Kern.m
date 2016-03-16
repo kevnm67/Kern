@@ -379,4 +379,24 @@ static NSManagedObjectContext *_mainQueueContext;
     return nil;
 }
 
+#pragma mark - Testing -
+
++ (void)drop {
+    [self dropDatabase:[self baseName]];
+}
+
++ (void)dropDatabase:(NSString *)sqliteName {
+    NSLog(@"Dropping SQLite database %@.....", sqliteName);
+    
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    
+    NSURL *baseURL = [[self applicationDocumentsDirectory] URLByAppendingPathComponent:sqliteName];
+    NSURL *shmURL = [baseURL URLByAppendingPathExtension:@"sqlite-shm"];
+    NSURL *walURL = [baseURL URLByAppendingPathExtension:@"sqlite-wal"];
+    
+    [fileManager removeItemAtURL:[self urlForStoreName:sqliteName] error:nil];
+    [fileManager removeItemAtURL:shmURL error:nil];
+    [fileManager removeItemAtURL:walURL error:nil];
+}
+
 @end

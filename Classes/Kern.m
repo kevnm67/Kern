@@ -45,15 +45,6 @@ static NSManagedObjectContext *_mainQueueContext;
 	 return _mainQueueContext;
 }
 
-+ (NSDictionary *)defaultMigrationOptions {
-    // define the auto migration features
-    return @{
-             NSMigratePersistentStoresAutomaticallyOption: @YES,
-             NSInferMappingModelAutomaticallyOption: @YES,
-             NSSQLitePragmasOption: @{@"journal_mode": @"WAL"}
-             };
-}
-
 #pragma mark - Path Helpers
 
 + (NSString *)baseName {
@@ -70,9 +61,14 @@ static NSManagedObjectContext *_mainQueueContext;
 
 // Create the folder structure for the data store if it doesn't exist
 + (void)createApplicationSupportDirIfNeeded {
-    if ([[NSFileManager defaultManager] fileExistsAtPath:[[self storeURL] absoluteString]]) return;
+    return [self createApplicationSupportDirIfNeededForStore:[self baseName]];
+}
+
+// Create the folder structure for the data store if it doesn't exist
++ (void)createApplicationSupportDirIfNeededForStore:(NSString *)storeName {
+    if ([[NSFileManager defaultManager] fileExistsAtPath:[[self urlForStoreName:storeName] absoluteString]]) return;
     
-    [[NSFileManager defaultManager] createDirectoryAtURL:[[self storeURL] URLByDeletingLastPathComponent]
+    [[NSFileManager defaultManager] createDirectoryAtURL:[[self urlForStoreName:storeName] URLByDeletingLastPathComponent]
                              withIntermediateDirectories:YES attributes:nil error:nil];
 }
 
@@ -112,7 +108,7 @@ static NSManagedObjectContext *_mainQueueContext;
     NSPersistentStoreCoordinator *coordinator = [[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel:_managedObjectModel];
     
     // create the folder if we need it
-    [self createApplicationSupportDirIfNeeded];
+    [self createApplicationSupportDirIfNeededForStore:storeName];
 
     // If the name of the persistent store if provided, use it, otherwise use the name of the application for the store file name.
     NSURL *storeURL = storeName ? [self urlForStoreName:storeName] : [self storeURL];
@@ -196,6 +192,15 @@ static NSManagedObjectContext *_mainQueueContext;
     _privateQueueContext = nil;
     _mainQueueContext = nil;
     
+}
+
++ (NSDictionary *)defaultMigrationOptions {
+    // define the auto migration features
+    return @{
+             NSMigratePersistentStoresAutomaticallyOption: @YES,
+             NSInferMappingModelAutomaticallyOption: @YES,
+             NSSQLitePragmasOption: @{@"journal_mode": @"WAL"}
+             };
 }
 
 #pragma mark - Core Data Save

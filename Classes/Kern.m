@@ -13,9 +13,9 @@ static NSManagedObjectContext *_mainQueueContext;
 @interface Kern ()
 
 + (NSString *)baseName;
-+ (NSURL *)applicationDocumentsDirectory;
-+ (void)createApplicationSupportDirIfNeeded;
-+ (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute;
++ (NSURL *)   applicationDocumentsDirectory;
++ (void)      createApplicationSupportDirIfNeeded;
++ (void)      setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute;
 
 + (void)kern_didSaveContext:(NSNotification *)notification;
 + (NSUInteger)kern_countForFetchRequest:(NSFetchRequest *)fetchRequest;
@@ -153,7 +153,7 @@ static NSManagedObjectContext *_mainQueueContext;
     _persistentStore = [coordinator addPersistentStoreWithType:NSInMemoryStoreType configuration:nil URL:nil options:[self defaultMigrationOptions] error:&error];
     
     if (!_persistentStore || error) {
-        NSLog(@"Unable to create persistent store! %@, %@", error, [error userInfo]);
+        NSLog(@"Unable to create persistent store! %@, %@", error, error.userInfo);
     }
     
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(kern_didSaveContext:) name:NSManagedObjectContextDidSaveNotification object:nil];
@@ -178,6 +178,11 @@ static NSManagedObjectContext *_mainQueueContext;
             NSLog(@"Failed to use the default SQLite store:\t %@ \nError: %@", defaultStore, error.localizedDescription);
         } else {
             NSLog(@"Successfully copied the default SQLite store:\n%@", defaultStore, destinationURL.path);
+            
+            // get metadata dictionary for persistentstore and set default database used as initial SQLite store.
+            NSMutableDictionary *dictionary = [NSMutableDictionary dictionaryWithDictionary:_persistentStore.metadata.copy];
+            [dictionary setObject:@YES forKey:@"DefaultDataImported"];
+            [_mainQueueContext.persistentStoreCoordinator setMetadata:dictionary forPersistentStore:_persistentStore];
         }
     }
 }
@@ -191,10 +196,15 @@ static NSManagedObjectContext *_mainQueueContext;
 
 + (NSDictionary *)defaultMigrationOptions {
     // define the auto migration features
+    return [self migrationOptionsUsingSQLiteJournalMode:TRUE];
+}
+
++ (NSDictionary *)migrationOptionsUsingSQLiteJournalMode:(BOOL)useJournal {
+    NSString *journalModeChoice = useJournal ? @"WAL" : @"DELETE";
     return @{
                NSMigratePersistentStoresAutomaticallyOption: @YES,
                NSInferMappingModelAutomaticallyOption: @YES,
-               NSSQLitePragmasOption: @{@"journal_mode": @"WAL"}
+               NSSQLitePragmasOption: @{@"journal_mode": journalModeChoice}
     };
 }
 
@@ -214,18 +224,14 @@ static NSManagedObjectContext *_mainQueueContext;
 + (BOOL)saveContext {
     NSManagedObjectContext *context = _mainQueueContext;
     
-    if (context == nil) {
-        return NO;
-    }
-    
-    if (![context hasChanges]) {
+    if (context == nil | ![context hasChanges]) {
         return NO;
     }
     
     NSError *error = nil;
     
     if (![context save:&error]) {
-        NSLog(@"Unable to save context! %@, %@", error, [error userInfo]);
+        NSLog(@"Unable to save context! %@, %@", error, error.userInfo);
         return NO;
     }
     

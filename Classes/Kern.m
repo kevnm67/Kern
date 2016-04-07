@@ -2,24 +2,24 @@
 #import "Kern.h"
 #import "NSURL+DoNotBackup.h"
 
-NSString * const kKernDefaultStoreFileName = @"KernDataStore.sqlite";
-NSString * const kKernDefaultBaseName = @"Kern";
+NSString *const kKernDefaultStoreFileName = @"KernDataStore.sqlite";
+NSString *const kKernDefaultBaseName      = @"Kern";
 static NSPersistentStore *_persistentStore;
 static NSManagedObjectModel *_managedObjectModel;
 static NSManagedObjectContext *_privateQueueContext;
 static NSManagedObjectContext *_mainQueueContext;
 
 # pragma mark - Private Declarations
-@interface Kern()
+@interface Kern ()
 
 + (NSString *)baseName;
 + (NSURL *)applicationDocumentsDirectory;
 + (void)createApplicationSupportDirIfNeeded;
 + (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute;
 
-+ (void)kern_didSaveContext:(NSNotification*)notification;
-+ (NSUInteger)kern_countForFetchRequest:(NSFetchRequest*)fetchRequest;
-+ (NSArray*)kern_executeFetchRequest:(NSFetchRequest*)fetchRequest;
++ (void)kern_didSaveContext:(NSNotification *)notification;
++ (NSUInteger)kern_countForFetchRequest:(NSFetchRequest *)fetchRequest;
++ (NSArray *)kern_executeFetchRequest:(NSFetchRequest *)fetchRequest;
 
 @end
 
@@ -29,20 +29,21 @@ static NSManagedObjectContext *_mainQueueContext;
 #pragma mark - Accessors
 
 // the shared model
-+ (NSManagedObjectModel*)sharedModel {
++ (NSManagedObjectModel *)sharedModel {
     if (!_managedObjectModel) {
         [self setupInMemoryStoreCoreDataStack];  // if nothing was setup, we'll use an in memory store
     }
+    
     return _managedObjectModel;
 }
 
 // the shared context
-+ (NSManagedObjectContext*)sharedContext {
++ (NSManagedObjectContext *)sharedContext {
     if (!_mainQueueContext) {
         [self setupInMemoryStoreCoreDataStack];  // if nothing was setup, we'll use an in memory store
     }
-	
-	 return _mainQueueContext;
+    
+    return _mainQueueContext;
 }
 
 #pragma mark - Path Helpers
@@ -54,8 +55,7 @@ static NSManagedObjectContext *_mainQueueContext;
 }
 
 // Returns the URL to the application's Documents directory.
-+ (NSURL *)applicationDocumentsDirectory
-{
++ (NSURL *)applicationDocumentsDirectory {
     return [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] lastObject];
 }
 
@@ -66,24 +66,26 @@ static NSManagedObjectContext *_mainQueueContext;
 
 // Create the folder structure for the data store if it doesn't exist
 + (void)createApplicationSupportDirIfNeededForStore:(NSString *)storeName {
-    if ([[NSFileManager defaultManager] fileExistsAtPath:[[self urlForStoreName:storeName] absoluteString]]) return;
+    if ([[NSFileManager defaultManager] fileExistsAtPath:[[self urlForStoreName:storeName] absoluteString]]) {
+        return;
+    }
     
     [[NSFileManager defaultManager] createDirectoryAtURL:[[self urlForStoreName:storeName] URLByDeletingLastPathComponent]
                              withIntermediateDirectories:YES attributes:nil error:nil];
 }
 
 // Return the full path to the data store
-+ (NSURL*)storeURL {
++ (NSURL *)storeURL {
     return [self urlForStoreName:[self baseName]];
 }
 
-+ (NSURL*)urlForStoreName:(NSString *)storeName {
++ (NSURL *)urlForStoreName:(NSString *)storeName {
     return [[[self applicationDocumentsDirectory] URLByAppendingPathComponent:storeName] URLByAppendingPathExtension:@"sqlite"];
 }
 
 #pragma mark - Core Data Setup
 
-+ (void) setupCoreDataStackWithAutoMigratingSqliteStoreNamed:(NSString *)storeName {
++ (void)setupCoreDataStackWithAutoMigratingSqliteStoreNamed:(NSString *)storeName {
     // Set the default data store (ie pre-loaded SQL file) as initial store
     [self setInitialDataStoreNamed:storeName];
     [self setupAutoMigratingCoreDataStack:NO withStoreName:storeName];
@@ -109,7 +111,7 @@ static NSManagedObjectContext *_mainQueueContext;
     
     // create the folder if we need it
     [self createApplicationSupportDirIfNeededForStore:storeName];
-
+    
     // If the name of the persistent store if provided, use it, otherwise use the name of the application for the store file name.
     NSURL *storeURL = storeName ? [self urlForStoreName:storeName] : [self storeURL];
     
@@ -126,7 +128,6 @@ static NSManagedObjectContext *_mainQueueContext;
         NSLog(@"Unable to create persistent store! %@, %@", error, error.userInfo);
     }
     
-    
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(kern_didSaveContext:) name:NSManagedObjectContextDidSaveNotification object:nil];
     
     _privateQueueContext = [[NSManagedObjectContext alloc] initWithConcurrencyType:NSPrivateQueueConcurrencyType];
@@ -138,8 +139,7 @@ static NSManagedObjectContext *_mainQueueContext;
     _mainQueueContext.undoManager = nil;
 }
 
-+ (void)setupInMemoryStoreCoreDataStack
-{
++ (void)setupInMemoryStoreCoreDataStack {
     // setup our object model and persistent store
     _managedObjectModel = [NSManagedObjectModel mergedModelFromBundles:nil];
     
@@ -147,7 +147,7 @@ static NSManagedObjectContext *_mainQueueContext;
     
     // create the folder if we need it
     [self createApplicationSupportDirIfNeeded];
-  
+    
     // attempt to create the store
     NSError *error = nil;
     _persistentStore = [coordinator addPersistentStoreWithType:NSInMemoryStoreType configuration:nil URL:nil options:[self defaultMigrationOptions] error:&error];
@@ -165,48 +165,44 @@ static NSManagedObjectContext *_mainQueueContext;
     [_mainQueueContext setParentContext:_privateQueueContext];
 }
 
-+ (void)setInitialDataStoreNamed:(NSString *)defaultStore
-{
++ (void)setInitialDataStoreNamed:(NSString *)defaultStore {
     NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSURL *destinationURL      = [self urlForStoreName:defaultStore];
     
-    if (![fileManager fileExistsAtPath:self.storeURL.path]) {
-        
-        NSURL *defaultDataURL = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:defaultStore ofType:@"sqlite"]];
-        NSURL *destinationURL = [self urlForStoreName:defaultStore];
-        
+    if (![fileManager fileExistsAtPath:destinationURL.path]) {
         NSError *error;
         
+        NSURL *defaultDataURL = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:defaultStore ofType:@"sqlite"]];
+        
         if (![fileManager copyItemAtURL:defaultDataURL toURL:destinationURL error:&error]) {
-            NSLog(@"Failed to initial SQLite store:\t %@ \nError: %@", defaultStore, error.localizedDescription);
-        }
-        else {
-            NSLog(@"A copy of %@ was set as the initial store for \n%@", defaultStore, destinationURL.path);
+            NSLog(@"Failed to use the default SQLite store:\t %@ \nError: %@", defaultStore, error.localizedDescription);
+        } else {
+            NSLog(@"Successfully copied the default SQLite store:\n%@", defaultStore, destinationURL.path);
         }
     }
 }
 
 + (void)cleanUp {
-    
     [[NSNotificationCenter defaultCenter] removeObserver:self name:NSManagedObjectContextDidSaveNotification object:nil];
-    _persistentStore = nil;
+    _persistentStore     = nil;
     _privateQueueContext = nil;
-    _mainQueueContext = nil;
-    
+    _mainQueueContext    = nil;
 }
 
 + (NSDictionary *)defaultMigrationOptions {
     // define the auto migration features
     return @{
-             NSMigratePersistentStoresAutomaticallyOption: @YES,
-             NSInferMappingModelAutomaticallyOption: @YES,
-             NSSQLitePragmasOption: @{@"journal_mode": @"WAL"}
-             };
+               NSMigratePersistentStoresAutomaticallyOption: @YES,
+               NSInferMappingModelAutomaticallyOption: @YES,
+               NSSQLitePragmasOption: @{@"journal_mode": @"WAL"}
+    };
 }
 
 #pragma mark - Core Data Save
 
-+ (void)kern_didSaveContext:(NSNotification*)notification {
++ (void)kern_didSaveContext:(NSNotification *)notification {
     NSManagedObjectContext *mainContext = _mainQueueContext;
+    
     if ([notification object] == mainContext) {
         NSManagedObjectContext *parentContext = [mainContext parentContext];
         [parentContext performBlock:^{
@@ -216,25 +212,29 @@ static NSManagedObjectContext *_mainQueueContext;
 }
 
 + (BOOL)saveContext {
-	
-	NSManagedObjectContext *context = _mainQueueContext;
-	if (context == nil) return NO;
-	if (![context hasChanges]) return NO;
-	
-	NSError *error = nil;
-	
-	if (![context save:&error]) {
-		NSLog(@"Unable to save context! %@, %@", error, [error userInfo]);
-		return NO;
-	}
-	
-	return YES;
+    NSManagedObjectContext *context = _mainQueueContext;
+    
+    if (context == nil) {
+        return NO;
+    }
+    
+    if (![context hasChanges]) {
+        return NO;
+    }
+    
+    NSError *error = nil;
+    
+    if (![context save:&error]) {
+        NSLog(@"Unable to save context! %@, %@", error, [error userInfo]);
+        return NO;
+    }
+    
+    return YES;
 }
 
 #pragma mark - Library Helpers
 
-+ (NSFetchRequest*)kern_fetchRequestForEntityName:(NSString*)entityName condition:(id)condition sort:(id)sort limit:(NSUInteger)limit {
-    
++ (NSFetchRequest *)kern_fetchRequestForEntityName:(NSString *)entityName condition:(id)condition sort:(id)sort limit:(NSUInteger)limit {
     NSFetchRequest *request = [[NSFetchRequest alloc] initWithEntityName:entityName];
     request.fetchBatchSize = kKernDefaultBatchSize;
     
@@ -251,61 +251,54 @@ static NSManagedObjectContext *_mainQueueContext;
     }
     
     return request;
+}
+
++ (NSUInteger)kern_countForFetchRequest:(NSFetchRequest *)fetchRequest {
+    NSError *error   = nil;
+    NSUInteger count = [[self sharedThreadedContext] countForFetchRequest:fetchRequest error:&error];
     
-}
-   
-+ (NSUInteger)kern_countForFetchRequest:(NSFetchRequest*)fetchRequest {
-   NSError *error = nil;
-   NSUInteger count = [[self sharedThreadedContext] countForFetchRequest:fetchRequest error:&error];
-   
-   if (error) {
-       [NSException raise:@"Unable to count for fetch request." format:@"Error: %@", error];
-   }
-   
-   return count;
+    if (error) {
+        [NSException raise:@"Unable to count for fetch request." format:@"Error: %@", error];
+    }
+    
+    return count;
 }
 
-
-+ (NSManagedObjectContext*)sharedThreadedContext
-{
-	 if([NSThread isMainThread])
-	 {
-		 return _mainQueueContext;
-	 }
-	 else
-	 {
-		 return _privateQueueContext;
-	 }
++ (NSManagedObjectContext *)sharedThreadedContext {
+    if ([NSThread isMainThread]) {
+        return _mainQueueContext;
+    } else {
+        return _privateQueueContext;
+    }
 }
 
-+ (NSArray*)kern_executeFetchRequest:(NSFetchRequest*)fetchRequest {
-	
-	NSError *error = nil;
-	NSArray *results = [[self sharedThreadedContext] executeFetchRequest:fetchRequest error:&error];
-   
-   if (error) {
-       [NSException raise:@"Unable to execute fetch request." format:@"Error: %@", error];
-   }
-	
-   return ([results count] > 0) ? results : nil;
++ (NSArray *)kern_executeFetchRequest:(NSFetchRequest *)fetchRequest {
+    NSError *error   = nil;
+    NSArray *results = [[self sharedThreadedContext] executeFetchRequest:fetchRequest error:&error];
+    
+    if (error) {
+        [NSException raise:@"Unable to execute fetch request." format:@"Error: %@", error];
+    }
+    
+    return ([results count] > 0) ? results : nil;
 }
-
 
 #pragma mark - Private
 
-+ (NSArray*)kern_sortDescriptorsFromString:(NSString*)sort {
-    
-    if (!sort || [sort isEmpty]) { return @[]; }
++ (NSArray *)kern_sortDescriptorsFromString:(NSString *)sort {
+    if (!sort || [sort isEmpty]) {
+        return @[];
+    }
     
     NSString *trimmedSort = [sort stringByTrimmingLeadingAndTrailingWhitespaceAndNewlineCharacters];
     
     NSMutableArray *sortDescriptors = [NSMutableArray array];
-    NSArray *sortPhrases = [trimmedSort componentsSeparatedByString:@","];
+    NSArray *sortPhrases            = [trimmedSort componentsSeparatedByString:@","];
     
     for (NSString *phrase in sortPhrases) {
         NSArray *parts = [[phrase stringByTrimmingLeadingAndTrailingWhitespaceAndNewlineCharacters] componentsSeparatedByString:@" "];
         
-        NSString *sortKey = [(NSString*)[parts firstObject] stringByTrimmingLeadingAndTrailingWhitespaceAndNewlineCharacters];
+        NSString *sortKey = [(NSString *)[parts firstObject] stringByTrimmingLeadingAndTrailingWhitespaceAndNewlineCharacters];
         
         BOOL sortDescending = false;
         
@@ -317,25 +310,25 @@ static NSManagedObjectContext *_mainQueueContext;
         
         [sortDescriptors addObject:[NSSortDescriptor sortDescriptorWithKey:sortKey ascending:!sortDescending]];
     }
+    
     return sortDescriptors;
 }
 
 + (NSSortDescriptor *)kern_sortDescriptorFromDictionary:(NSDictionary *)dict {
-    NSString *value = [[dict.allValues objectAtIndex:0] uppercaseString];
-    NSString *key = [dict.allKeys objectAtIndex:0];
+    NSString *value  = [[dict.allValues objectAtIndex:0] uppercaseString];
+    NSString *key    = [dict.allKeys objectAtIndex:0];
     BOOL isAscending = ![value isEqualToString:@"DESC"];
     return [NSSortDescriptor sortDescriptorWithKey:key ascending:isAscending];
 }
 
 + (NSSortDescriptor *)kern_sortDescriptorFromObject:(id)order {
-    if ([order isKindOfClass:[NSSortDescriptor class]])
+    if ([order isKindOfClass:[NSSortDescriptor class]]) {
         return order;
-    
-    else if ([order isKindOfClass:[NSString class]])
+    } else if ([order isKindOfClass:[NSString class]]) {
         return [NSSortDescriptor sortDescriptorWithKey:order ascending:YES];
-    
-    else if ([order isKindOfClass:[NSDictionary class]])
+    } else if ([order isKindOfClass:[NSDictionary class]]) {
         return [self kern_sortDescriptorFromDictionary:order];
+    }
     
     return nil;
 }
@@ -344,39 +337,40 @@ static NSManagedObjectContext *_mainQueueContext;
     // if it's a comma separated string, use our method to parse it
     if ([order isKindOfClass:[NSString class]] && ([order containsString:@","] || [order containsString:@" "])) {
         return [self kern_sortDescriptorsFromString:order];
-    }
-    else if ([order isKindOfClass:[NSArray class]]) {
+    } else if ([order isKindOfClass:[NSArray class]]) {
         NSMutableArray *results = [NSMutableArray array];
+        
         for (id object in order) {
             [results addObject:[self kern_sortDescriptorFromObject:object]];
         }
+        
         return results;
-    }
-    else
+    } else {
         return @[[self kern_sortDescriptorFromObject:order]];
+    }
 }
 
-+ (NSPredicate*)kern_predicateFromConditional:(id)condition {
-    
++ (NSPredicate *)kern_predicateFromConditional:(id)condition {
     if (condition) {
         if ([condition isKindOfClass:[NSPredicate class]]) { //any kind of predicate?
             return condition;
-        }
-        else if ([condition isKindOfClass:[NSString class]]) {
+        } else if ([condition isKindOfClass:[NSString class]]) {
             return [NSPredicate predicateWithFormat:condition];
-        }
-        else if ([condition isKindOfClass:[NSDictionary class]]) {
+        } else if ([condition isKindOfClass:[NSDictionary class]]) {
             // if it's empty or not provided return nil
-            if (!condition || [condition count] == 0) { return nil; }
-            
+            if (!condition || [condition count] == 0) {
+                return nil;
+            }
             
             NSMutableArray *subpredicates = [NSMutableArray array];
+            
             for (id key in [condition allKeys]) {
                 id value = [condition valueForKey:key];
                 [subpredicates addObject:[NSPredicate predicateWithFormat:@"%K == %@", key, value]];
             }
             
-            return [NSCompoundPredicate andPredicateWithSubpredicates:subpredicates];        }
+            return [NSCompoundPredicate andPredicateWithSubpredicates:subpredicates];
+        }
         
         @throw [NSException exceptionWithName:@"InvalidConditional" reason:@"Invalid conditional." userInfo:@{}];
     }
@@ -391,13 +385,11 @@ static NSManagedObjectContext *_mainQueueContext;
 }
 
 + (void)dropDatabase:(NSString *)sqliteName {
-    NSLog(@"Dropping SQLite database %@.....", sqliteName);
-    
     NSFileManager *fileManager = [NSFileManager defaultManager];
     
     NSURL *baseURL = [[self applicationDocumentsDirectory] URLByAppendingPathComponent:sqliteName];
-    NSURL *shmURL = [baseURL URLByAppendingPathExtension:@"sqlite-shm"];
-    NSURL *walURL = [baseURL URLByAppendingPathExtension:@"sqlite-wal"];
+    NSURL *shmURL  = [baseURL URLByAppendingPathExtension:@"sqlite-shm"];
+    NSURL *walURL  = [baseURL URLByAppendingPathExtension:@"sqlite-wal"];
     
     [fileManager removeItemAtURL:[self urlForStoreName:sqliteName] error:nil];
     [fileManager removeItemAtURL:shmURL error:nil];

@@ -57,11 +57,17 @@ extern NSString *const kKernDefaultStoreFileName;
 + (NSManagedObjectModel *)sharedModel;
 + (NSManagedObjectContext *)sharedContext;
 + (NSManagedObjectContext *)sharedThreadedContext;
+
 + (NSURL *)storeURL;
 + (NSURL *)urlForStoreName:(NSString *)storeName;
 
++ (void)setupCoreDataStackWithSqliteFileName:(NSString *)storeName;
+
++ (void)setupCoreDataStackWithSqliteFileName:(NSString *)storeName hasJournaling:(BOOL)hasJournaling;
+
 /**
- *  Configure an auto migrating core data stack with the name of the SQLite file provided in the main bundle.
+ *  Setup an auto migrating core data stack with the SQLite file specified. 
+ *  Note: assumes file in in main bundle.
  *
  *  @param storeName Name of the SQLite store file.
  */
@@ -76,6 +82,11 @@ extern NSString *const kKernDefaultStoreFileName;
 + (NSFetchRequest *)kern_fetchRequestForEntityName:(NSString *)entityName condition:(id)condition sort:(id)sort limit:(NSUInteger)limit;
 + (NSUInteger)kern_countForFetchRequest:(NSFetchRequest *)fetchRequest;
 + (NSArray *)kern_executeFetchRequest:(NSFetchRequest *)fetchRequest;
+
+@end
+
+
+@interface Kern (Testing)
 
 /**
  *  Drop the current SQLite database including wal and journal files.

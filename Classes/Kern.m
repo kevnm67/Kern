@@ -85,6 +85,14 @@ static NSManagedObjectContext *_mainQueueContext;
 
 #pragma mark - Core Data Setup
 
++ (void)setupCoreDataStackWithSqliteFileName:(NSString *)storeName {
+    [self setupCoreDataStackWithSqliteFileName:storeName hasJournaling:TRUE];
+}
+
++ (void)setupCoreDataStackWithSqliteFileName:(NSString *)storeName hasJournaling:(BOOL)hasJournaling {
+    
+}
+
 + (void)setupCoreDataStackWithAutoMigratingSqliteStoreNamed:(NSString *)storeName {
     // Set the default data store (ie pre-loaded SQL file) as initial store
     [self setInitialDataStoreNamed:storeName];
@@ -104,6 +112,10 @@ static NSManagedObjectContext *_mainQueueContext;
 }
 
 + (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute withStoreName:(NSString *)storeName {
+    [self setupAutoMigratingCoreDataStack:shouldAddDoNotBackupAttribute withStoreName:storeName hasJournaling:TRUE];
+}
+
++ (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute withStoreName:(NSString *)storeName hasJournaling:(BOOL)hasJournaling {
     // setup our object model and persistent store
     _managedObjectModel = [NSManagedObjectModel mergedModelFromBundles:nil];
     
@@ -122,7 +134,7 @@ static NSManagedObjectContext *_mainQueueContext;
     
     // attempt to create the store
     NSError *error = nil;
-    _persistentStore = [coordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:[self defaultMigrationOptions] error:&error];
+    _persistentStore = [coordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:[self migrationOptionsUsingSQLiteJournalMode:hasJournaling] error:&error];
     
     if (!_persistentStore || error) {
         NSLog(@"Unable to create persistent store! %@, %@", error, error.userInfo);
@@ -177,7 +189,7 @@ static NSManagedObjectContext *_mainQueueContext;
         if (![fileManager copyItemAtURL:defaultDataURL toURL:destinationURL error:&error]) {
             NSLog(@"Failed to use the default SQLite store:\t %@ \nError: %@", defaultStore, error.localizedDescription);
         } else {
-            NSLog(@"Successfully copied the default SQLite store:\n%@", defaultStore, destinationURL.path);
+            NSLog(@"Successfully copied the default SQLite store:\n%@", destinationURL.path);
             
             // get metadata dictionary for persistentstore and set default database used as initial SQLite store.
             NSMutableDictionary *dictionary = [NSMutableDictionary dictionaryWithDictionary:_persistentStore.metadata.copy];
@@ -224,7 +236,7 @@ static NSManagedObjectContext *_mainQueueContext;
 + (BOOL)saveContext {
     NSManagedObjectContext *context = _mainQueueContext;
     
-    if (context == nil | ![context hasChanges]) {
+    if (context == nil || !context.hasChanges) {
         return NO;
     }
     
@@ -384,7 +396,13 @@ static NSManagedObjectContext *_mainQueueContext;
     return nil;
 }
 
+@end
+
+
 #pragma mark - Testing -
+
+@implementation Kern (Testing)
+
 
 + (void)drop {
     [self dropDatabase:[self baseName]];

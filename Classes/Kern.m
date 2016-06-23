@@ -4,6 +4,9 @@
 
 NSString *const kKernDefaultStoreFileName = @"KernDataStore.sqlite";
 NSString *const kKernDefaultBaseName      = @"Kern";
+NSString *const kKernPersistentStoreMetaDataKeyStoreFileName = @"kKernPersistentStoreMetaDataKeyStoreFileName";
+NSString *const kKernPersistentStoreMetaDataKeyStoreURL = @"kKernPersistentStoreMetaDataKeyStoreURL";
+
 static NSPersistentStore *_persistentStore;
 static NSManagedObjectModel *_managedObjectModel;
 static NSManagedObjectContext *_privateQueueContext;
@@ -95,6 +98,10 @@ static NSManagedObjectContext *_mainQueueContext;
     [self setupSqliteStackWithName:storeName hasJournaling:TRUE];
 }
 
++ (void)setupAutoMigratingCoreDataStackWithDoNotBackupAttribute {
+    [self setupAutoMigratingCoreDataStack:YES];
+}
+
 + (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute {
     [self setupAutoMigratingCoreDataStack:shouldAddDoNotBackupAttribute withStoreName:nil hasJournaling:TRUE];
 }
@@ -102,9 +109,6 @@ static NSManagedObjectContext *_mainQueueContext;
 + (void)setupAutoMigratingCoreDataStack {
     [self setupAutoMigratingCoreDataStack:NO];
 }
-
-NSString *const kKernPersistentStoreMetaDataKeyStoreFileName = @"kKernPersistentStoreMetaDataKeyStoreFileName";
-NSString *const kKernPersistentStoreMetaDataKeyStoreURL = @"kKernPersistentStoreMetaDataKeyStoreURL";
 
 + (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute withStoreName:(NSString *)storeName hasJournaling:(BOOL)hasJournaling {
     // setup our object model and persistent store

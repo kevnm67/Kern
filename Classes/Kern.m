@@ -85,34 +85,22 @@ static NSManagedObjectContext *_mainQueueContext;
 
 #pragma mark - Core Data Setup
 
-+ (void)setupCoreDataStackWithSqliteFileName:(NSString *)storeName {
-    [self setupCoreDataStackWithSqliteFileName:storeName hasJournaling:TRUE];
-}
-
-+ (void)setupCoreDataStackWithSqliteFileName:(NSString *)storeName hasJournaling:(BOOL)hasJournaling {
-    
-}
-
-+ (void)setupCoreDataStackWithAutoMigratingSqliteStoreNamed:(NSString *)storeName {
++ (void)setupSqliteStackWithName:(NSString *)storeName hasJournaling:(BOOL)hasJournaling {
     // Set the default data store (ie pre-loaded SQL file) as initial store
     [self setInitialDataStoreNamed:storeName];
-    [self setupAutoMigratingCoreDataStack:NO withStoreName:storeName];
+    [self setupAutoMigratingCoreDataStack:NO withStoreName:storeName hasJournaling:hasJournaling];
+}
+
++ (void)setupCoreDataStackWithSqliteFileName:(NSString *)storeName {
+    [self setupSqliteStackWithName:storeName hasJournaling:TRUE];
 }
 
 + (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute {
-    [self setupAutoMigratingCoreDataStack:shouldAddDoNotBackupAttribute withStoreName:nil];
+    [self setupAutoMigratingCoreDataStack:shouldAddDoNotBackupAttribute withStoreName:nil hasJournaling:TRUE];
 }
 
 + (void)setupAutoMigratingCoreDataStack {
     [self setupAutoMigratingCoreDataStack:NO];
-}
-
-+ (void)setupAutoMigratingCoreDataStackWithDoNotBackupAttribute {
-    [self setupAutoMigratingCoreDataStack:YES];
-}
-
-+ (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute withStoreName:(NSString *)storeName {
-    [self setupAutoMigratingCoreDataStack:shouldAddDoNotBackupAttribute withStoreName:storeName hasJournaling:TRUE];
 }
 
 + (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute withStoreName:(NSString *)storeName hasJournaling:(BOOL)hasJournaling {
@@ -403,7 +391,6 @@ static NSManagedObjectContext *_mainQueueContext;
 
 @implementation Kern (Testing)
 
-
 + (void)drop {
     [self dropDatabase:[self baseName]];
 }
@@ -415,9 +402,13 @@ static NSManagedObjectContext *_mainQueueContext;
     NSURL *shmURL  = [baseURL URLByAppendingPathExtension:@"sqlite-shm"];
     NSURL *walURL  = [baseURL URLByAppendingPathExtension:@"sqlite-wal"];
     
-    [fileManager removeItemAtURL:[self urlForStoreName:sqliteName] error:nil];
-    [fileManager removeItemAtURL:shmURL error:nil];
-    [fileManager removeItemAtURL:walURL error:nil];
+    @try {
+        [fileManager removeItemAtURL:[self urlForStoreName:sqliteName] error:nil];
+        [fileManager removeItemAtURL:shmURL error:nil];
+        [fileManager removeItemAtURL:walURL error:nil];
+    } @catch (NSError *error) {
+        @throw [NSException exceptionWithName:@"Error dropping the sqlite database." reason:error userInfo:@{}];
+    }
 }
 
 @end

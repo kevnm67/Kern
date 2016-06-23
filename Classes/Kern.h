@@ -61,17 +61,23 @@ extern NSString *const kKernDefaultStoreFileName;
 + (NSURL *)storeURL;
 + (NSURL *)urlForStoreName:(NSString *)storeName;
 
-+ (void)setupCoreDataStackWithSqliteFileName:(NSString *)storeName;
-
-+ (void)setupCoreDataStackWithSqliteFileName:(NSString *)storeName hasJournaling:(BOOL)hasJournaling;
-
 /**
- *  Setup an auto migrating core data stack with the SQLite file specified. 
+ *  Setup an auto migrating core data stack with the SQLite file specified.
+ *
  *  Note: assumes file in in main bundle.
  *
- *  @param storeName Name of the SQLite store file.
+ *  @param storeName  Name of the SQLite store file.
  */
-+ (void)setupCoreDataStackWithAutoMigratingSqliteStoreNamed:(NSString *)storeName;
++ (void)setupCoreDataStackWithSqliteFileName:(NSString *)storeName;
+
+/**
+ *  Setup an auto migrating core data stack with the SQLite file specified and whether journaling is enabled.
+ *
+ *  @param storeName     Name of the SQLite store file.
+ *  @param hasJournaling Whether journaling is enabled for the stack.
+ */
++ (void)setupSqliteStackWithName:(NSString *)storeName hasJournaling:(BOOL)hasJournaling;
+
 + (void)setupAutoMigratingCoreDataStackWithDoNotBackupAttribute;
 + (void)setupAutoMigratingCoreDataStack;
 + (void)setupInMemoryStoreCoreDataStack;

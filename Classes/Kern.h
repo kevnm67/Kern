@@ -50,6 +50,9 @@
 #import "NSString+Kern.h"
 
 extern NSString *const kKernDefaultStoreFileName;
+extern NSString *const kKernPersistentStoreMetaDataKeyStoreFileName;
+extern NSString *const kKernPersistentStoreMetaDataKeyStoreURL;
+
 #define kKernDefaultBatchSize 20
 
 @interface Kern : NSObject

@@ -20,6 +20,14 @@ static NSString *kSQLiteFileName = @"TestStore";
     // Setup Kern
 //    [Kern setupAutoMigratingCoreDataStack];
 
+    [[Kern sharedContext].persistentStoreCoordinator.persistentStores enumerateObjectsUsingBlock:^(__kindof NSPersistentStore *_Nonnull obj, NSUInteger idx, BOOL *_Nonnull stop) {
+        NSLog(@"Persistant metad \n\n%@\n\n", obj.metadata[kKernPersistentStoreMetaDataKeyStoreFileName]);
+        NSLog(@"\n-----------\n%@\n\n", obj.metadata[kKernPersistentStoreMetaDataKeyStoreURL]);
+    }];
+    
+    [Kern drop];
+    [Kern saveContext];
+    
     [Kern setupSqliteStackWithName:kSQLiteFileName hasJournaling:TRUE];
     
     // Override point for customization after application launch.

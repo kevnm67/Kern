@@ -49,14 +49,14 @@ static NSManagedObjectContext *_mainQueueContext;
 #pragma mark - Path Helpers
 
 + (NSString *)baseName {
-    NSString *defaultName = [[[NSBundle bundleForClass:[NSBundle mainBundle].class] infoDictionary] valueForKey:(id)kCFBundleNameKey];
+    NSString *defaultName = [[NSBundle mainBundle] objectForInfoDictionaryKey:(id)kCFBundleNameKey];
     
     return (defaultName != nil) ? defaultName : kKernDefaultBaseName;
 }
 
 // Returns the URL to the application's Documents directory.
 + (NSURL *)applicationDocumentsDirectory {
-    return [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] lastObject];
+    return [[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].lastObject;
 }
 
 // Create the folder structure for the data store if it doesn't exist
@@ -66,7 +66,7 @@ static NSManagedObjectContext *_mainQueueContext;
 
 // Create the folder structure for the data store if it doesn't exist
 + (void)createApplicationSupportDirIfNeededForStore:(NSString *)storeName {
-    if ([[NSFileManager defaultManager] fileExistsAtPath:[[self urlForStoreName:storeName] absoluteString]]) {
+    if ([[NSFileManager defaultManager] fileExistsAtPath:[self urlForStoreName:storeName].absoluteString]) {
         return;
     }
     
@@ -103,6 +103,9 @@ static NSManagedObjectContext *_mainQueueContext;
     [self setupAutoMigratingCoreDataStack:NO];
 }
 
+NSString *const kKernPersistentStoreMetaDataKeyStoreFileName = @"kKernPersistentStoreMetaDataKeyStoreFileName";
+NSString *const kKernPersistentStoreMetaDataKeyStoreURL = @"kKernPersistentStoreMetaDataKeyStoreURL";
+
 + (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute withStoreName:(NSString *)storeName hasJournaling:(BOOL)hasJournaling {
     // setup our object model and persistent store
     _managedObjectModel = [NSManagedObjectModel mergedModelFromBundles:nil];
@@ -127,6 +130,11 @@ static NSManagedObjectContext *_mainQueueContext;
     if (!_persistentStore || error) {
         NSLog(@"Unable to create persistent store! %@, %@", error, error.userInfo);
     }
+    
+    [_persistentStore setMetadata:@{
+                                    kKernPersistentStoreMetaDataKeyStoreFileName : storeName,
+                                    kKernPersistentStoreMetaDataKeyStoreURL : storeURL
+                                    }];
     
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(kern_didSaveContext:) name:NSManagedObjectContextDidSaveNotification object:nil];
     
@@ -391,8 +399,25 @@ static NSManagedObjectContext *_mainQueueContext;
 
 @implementation Kern (Testing)
 
++ (NSArray *)applicationDocumentsDirectoryFiles {
+    NSString *applicationDocumentsDirectoryPath = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
+    return [[NSFileManager defaultManager] contentsOfDirectoryAtPath:applicationDocumentsDirectoryPath error:NULL];
+}
+
++ (NSString *)applicationDocumentsDirectoryFileWithExtension:(NSString *)fileExtension {
+    __block NSString *fileName = nil;
+    [[self applicationDocumentsDirectoryFiles] enumerateObjectsUsingBlock:^(NSString  *file, NSUInteger idx, BOOL * _Nonnull stop) {
+        if ([file.pathExtension isEqualToString:fileExtension]) {
+            fileName = file;
+            *stop = YES;
+        }
+    }];
+    
+    return fileName;
+}
+
 + (void)drop {
-    [self dropDatabase:[self baseName]];
+    [self dropDatabase:[self applicationDocumentsDirectoryFileWithExtension:@"sqlite"].stringByDeletingPathExtension ? : [self baseName]];
 }
 
 + (void)dropDatabase:(NSString *)sqliteName {
@@ -407,7 +432,7 @@ static NSManagedObjectContext *_mainQueueContext;
         [fileManager removeItemAtURL:shmURL error:nil];
         [fileManager removeItemAtURL:walURL error:nil];
     } @catch (NSError *error) {
-        @throw [NSException exceptionWithName:@"Error dropping the sqlite database." reason:error userInfo:@{}];
+        NSLog(@"Error dropping the sqlite database.  Error details:\n%@", error);
     }
 }
 

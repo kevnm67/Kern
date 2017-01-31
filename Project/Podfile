@@ -2,9 +2,10 @@ platform :ios, "7.0"
 
 target "KernExampleApp" do
     pod "Kern", :path => "../Kern.podspec"
-end
 
-target "KernExampleAppTests", :exclusive => true do
-	pod "Kern", :path => "../Kern.podspec"
+  target "KernExampleAppTests" do
+    inherit! :search_paths
+  end
+  
 end
 

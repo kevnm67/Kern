@@ -52,7 +52,7 @@ static NSManagedObjectContext *_mainQueueContext;
 #pragma mark - Path Helpers
 
 + (NSString *)baseName {
-    NSString *defaultName = [[NSBundle mainBundle] objectForInfoDictionaryKey:(id)kCFBundleNameKey];
+    NSString *defaultName = [[NSBundle mainBundle] objectForInfoDictionaryKey:kCFBundleNameKey];
     
     return (defaultName != nil) ? defaultName : kKernDefaultBaseName;
 }
@@ -135,11 +135,6 @@ static NSManagedObjectContext *_mainQueueContext;
         NSLog(@"Unable to create persistent store! %@, %@", error, error.userInfo);
     }
     
-    /* // Causing corruption when saving if store was previously created without this metadata.
-        [_persistentStore setMetadata:@{
-                                        kKernPersistentStoreMetaDataKeyStoreFileName : storeName,
-                                        kKernPersistentStoreMetaDataKeyStoreURL : storeURL
-                                        }]; */
     
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(kern_didSaveContext:) name:NSManagedObjectContextDidSaveNotification object:nil];
     

@@ -18,7 +18,7 @@ static NSString *kSQLiteFileName = @"TestStore";
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
     // Setup Kern
-    [Kern setupAutoMigratingCoreDataStack];
+    [Kern setupCoreDataStackWithSqliteFileName:kSQLiteFileName];
     
     // Override point for customization after application launch.
     UINavigationController *navigationController = (UINavigationController *)self.window.rootViewController;

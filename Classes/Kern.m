@@ -1,6 +1,7 @@
 
 #import "Kern.h"
 #import "NSURL+DoNotBackup.h"
+#import "KernMacros.h"
 
 NSString *const kKernDefaultStoreFileName = @"KernDataStore.sqlite";
 NSString *const kKernDefaultBaseName      = @"Kern";
@@ -24,9 +25,12 @@ static NSManagedObjectContext *_mainQueueContext;
 + (NSUInteger)kern_countForFetchRequest:(NSFetchRequest *)fetchRequest;
 + (NSArray *)kern_executeFetchRequest:(NSFetchRequest *)fetchRequest;
 
++ (BOOL)removeSQLiteFilesAtStoreURL:(NSURL *)storeURL error:(NSError * __autoreleasing *)error;
+
 @end
 
-# pragma mark - Kern Implementation
+# pragma mark - Kern Implementation -
+
 @implementation Kern
 
 #pragma mark - Accessors
@@ -412,6 +416,37 @@ static NSManagedObjectContext *_mainQueueContext;
     return nil;
 }
 
++ (BOOL)removeSQLiteFilesAtStoreURL:(NSURL *)storeURL error:(NSError * __autoreleasing *)error {
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSURL *storeDirectory = [storeURL URLByDeletingLastPathComponent];
+    NSDirectoryEnumerator *enumerator = [fileManager enumeratorAtURL:storeDirectory
+                                          includingPropertiesForKeys:nil
+                                                             options:0
+                                                        errorHandler:nil];
+    
+    NSString *storeName = [storeURL.lastPathComponent stringByDeletingPathExtension];
+    
+    for (NSURL *url in enumerator) {
+        
+        if ([url.lastPathComponent hasPrefix:storeName] == NO) {
+            continue;
+        }
+        
+        NSError *fileManagerError = nil;
+        
+        if ([fileManager removeItemAtURL:url error:&fileManagerError] == NO) {
+            
+            if (error != NULL) {
+                *error = fileManagerError;
+            }
+            
+            return NO;
+        }
+    }
+    
+    return YES;
+}
+
 @end
 
 #pragma mark - Testing -
@@ -436,7 +471,26 @@ static NSManagedObjectContext *_mainQueueContext;
 }
 
 + (void)drop {
-    [self dropDatabase:[self applicationDocumentsDirectoryFileWithExtension:@"sqlite"].stringByDeletingPathExtension ? : [self baseName]];
+    // Model has probably changed, lets delete the old one and try again
+    NSError *removeSQLiteFilesError = nil;
+    NSString *fileName = [self applicationDocumentsDirectoryFileWithExtension:@"sqlite"].stringByDeletingPathExtension ? : [self baseName];
+    
+    
+    NSURL *baseURL = [[self applicationDocumentsDirectory] URLByAppendingPathComponent:fileName];
+
+    NSURL *sqlStoreURL = [self urlForStoreName:fileName];
+    NSURL *shmURL  = [baseURL URLByAppendingPathExtension:@"sqlite-shm"];
+    NSURL *walURL  = [baseURL URLByAppendingPathExtension:@"sqlite-wal"];
+
+    
+    if ([self removeSQLiteFilesAtStoreURL:sqlStoreURL error:&removeSQLiteFilesError]) {
+        NSLog(@"removed swl file\n%@\n", sqlStoreURL);
+        return;
+    }
+    
+    ALog(@"ERROR: Could not remove SQLite files\n%@", [removeSQLiteFilesError localizedDescription]);
+    
+//    [self dropDatabase:[self applicationDocumentsDirectoryFileWithExtension:@"sqlite"].stringByDeletingPathExtension ? : [self baseName]];
 }
 
 + (void)dropDatabase:(NSString *)sqliteName {
@@ -457,5 +511,6 @@ static NSManagedObjectContext *_mainQueueContext;
     // clean up
     [Kern cleanUp];
 }
+
 
 @end

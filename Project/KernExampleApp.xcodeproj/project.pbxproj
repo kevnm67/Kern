@@ -558,6 +558,7 @@
 				INFOPLIST_FILE = "KernExampleApp/KernExampleApp-Info.plist";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.varsitytutors.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = 1;
 				TEST_HOST = "";
 				"TEST_HOST[sdk=*]" = "";
 				WRAPPER_EXTENSION = app;
@@ -575,6 +576,7 @@
 				INFOPLIST_FILE = "KernExampleApp/KernExampleApp-Info.plist";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.varsitytutors.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = 1;
 				TEST_HOST = "";
 				WRAPPER_EXTENSION = app;
 			};

@@ -16,9 +16,9 @@ static NSManagedObjectContext *_mainQueueContext;
 @interface Kern ()
 
 + (NSString *)baseName;
-+ (NSURL *)   applicationDocumentsDirectory;
-+ (void)      createApplicationSupportDirIfNeeded;
-+ (void)      setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute;
++ (NSURL *)applicationDocumentsDirectory;
++ (void)createApplicationSupportDirIfNeeded;
++ (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute;
 
 + (void)kern_didSaveContext:(NSNotification *)notification;
 + (NSUInteger)kern_countForFetchRequest:(NSFetchRequest *)fetchRequest;
@@ -52,7 +52,8 @@ static NSManagedObjectContext *_mainQueueContext;
 #pragma mark - Path Helpers
 
 + (NSString *)baseName {
-    NSString *defaultName = [[NSBundle mainBundle] objectForInfoDictionaryKey:kCFBundleNameKey];
+    CFBundleRef bundle = CFBundleGetMainBundle();
+    NSString *defaultName = [[NSBundle mainBundle] objectForInfoDictionaryKey:(__bridge NSString *)(CFBundleGetValueForInfoDictionaryKey(bundle, kCFBundleNameKey))];
     
     return (defaultName != nil) ? defaultName : kKernDefaultBaseName;
 }
@@ -69,12 +70,16 @@ static NSManagedObjectContext *_mainQueueContext;
 
 // Create the folder structure for the data store if it doesn't exist
 + (void)createApplicationSupportDirIfNeededForStore:(NSString *)storeName {
-    if ([[NSFileManager defaultManager] fileExistsAtPath:[self urlForStoreName:storeName].absoluteString]) {
+    NSURL *storeURL = [self urlForStoreName:storeName];
+    
+    if ([[NSFileManager defaultManager] fileExistsAtPath:storeURL.absoluteString]) {
         return;
     }
     
-    [[NSFileManager defaultManager] createDirectoryAtURL:[[self urlForStoreName:storeName] URLByDeletingLastPathComponent]
-                             withIntermediateDirectories:YES attributes:nil error:nil];
+    [[NSFileManager defaultManager] createDirectoryAtURL:[storeURL URLByDeletingLastPathComponent]
+                             withIntermediateDirectories:YES
+                                              attributes:nil
+                                                   error:nil];
 }
 
 // Return the full path to the data store
@@ -91,7 +96,7 @@ static NSManagedObjectContext *_mainQueueContext;
 + (void)setupSqliteStackWithName:(NSString *)storeName hasJournaling:(BOOL)hasJournaling {
     // Set the default data store (ie pre-loaded SQL file) as initial store
     [self setInitialDataStoreNamed:storeName];
-    [self setupAutoMigratingCoreDataStack:NO withStoreName:storeName hasJournaling:hasJournaling];
+    [self setupAutoMigratingCoreDataStack:NO storeName:storeName hasJournaling:hasJournaling];
 }
 
 + (void)setupCoreDataStackWithSqliteFileName:(NSString *)storeName {
@@ -103,22 +108,22 @@ static NSManagedObjectContext *_mainQueueContext;
 }
 
 + (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute {
-    [self setupAutoMigratingCoreDataStack:shouldAddDoNotBackupAttribute withStoreName:nil hasJournaling:TRUE];
+    [self setupAutoMigratingCoreDataStack:shouldAddDoNotBackupAttribute storeName:nil hasJournaling:TRUE];
 }
 
 + (void)setupAutoMigratingCoreDataStack {
     [self setupAutoMigratingCoreDataStack:NO];
 }
 
-+ (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute withStoreName:(NSString *)storeName hasJournaling:(BOOL)hasJournaling {
++ (void)setupAutoMigratingCoreDataStack:(BOOL)shouldAddDoNotBackupAttribute storeName:(NSString *)storeName hasJournaling:(BOOL)hasJournaling {
     // setup our object model and persistent store
     _managedObjectModel = [NSManagedObjectModel mergedModelFromBundles:nil];
     
     NSPersistentStoreCoordinator *coordinator = [[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel:_managedObjectModel];
     
     // create the folder if we need it
-    [self createApplicationSupportDirIfNeededForStore:storeName];
-    
+    [self createApplicationSupportDirIfNeededForStore:storeName ? : [self baseName]];
+
     // If the name of the persistent store if provided, use it, otherwise use the name of the application for the store file name.
     NSURL *storeURL = storeName ? [self urlForStoreName:storeName] : [self storeURL];
     
@@ -129,14 +134,20 @@ static NSManagedObjectContext *_mainQueueContext;
     
     // attempt to create the store
     NSError *error = nil;
-    _persistentStore = [coordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:[self migrationOptionsUsingSQLiteJournalMode:hasJournaling] error:&error];
+    _persistentStore = [coordinator addPersistentStoreWithType:NSSQLiteStoreType
+                                                 configuration:nil
+                                                           URL:storeURL
+                                                       options:[self migrationOptionsUsingSQLiteJournalMode:hasJournaling]
+                                                         error:&error];
     
     if (!_persistentStore || error) {
         NSLog(@"Unable to create persistent store! %@, %@", error, error.userInfo);
     }
     
-    
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(kern_didSaveContext:) name:NSManagedObjectContextDidSaveNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(kern_didSaveContext:)
+                                                 name:NSManagedObjectContextDidSaveNotification
+                                               object:nil];
     
     _privateQueueContext = [[NSManagedObjectContext alloc] initWithConcurrencyType:NSPrivateQueueConcurrencyType];
     [_privateQueueContext setPersistentStoreCoordinator:coordinator];
@@ -158,13 +169,21 @@ static NSManagedObjectContext *_mainQueueContext;
     
     // attempt to create the store
     NSError *error = nil;
-    _persistentStore = [coordinator addPersistentStoreWithType:NSInMemoryStoreType configuration:nil URL:nil options:[self defaultMigrationOptions] error:&error];
+    
+    _persistentStore = [coordinator addPersistentStoreWithType:NSInMemoryStoreType
+                                                 configuration:nil
+                                                           URL:nil
+                                                       options:[self defaultMigrationOptions]
+                                                         error:&error];
     
     if (!_persistentStore || error) {
         NSLog(@"Unable to create persistent store! %@, %@", error, error.userInfo);
     }
     
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(kern_didSaveContext:) name:NSManagedObjectContextDidSaveNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(kern_didSaveContext:)
+                                                 name:NSManagedObjectContextDidSaveNotification
+                                               object:nil];
     
     _privateQueueContext = [[NSManagedObjectContext alloc] initWithConcurrencyType:NSPrivateQueueConcurrencyType];
     [_privateQueueContext setPersistentStoreCoordinator:coordinator];
@@ -175,7 +194,8 @@ static NSManagedObjectContext *_mainQueueContext;
 
 + (void)setInitialDataStoreNamed:(NSString *)defaultStore {
     NSFileManager *fileManager = [NSFileManager defaultManager];
-    NSURL *destinationURL      = [self urlForStoreName:defaultStore];
+  
+    NSURL *destinationURL = [self urlForStoreName:defaultStore];
     
     if (![fileManager fileExistsAtPath:destinationURL.path]) {
         NSError *error;
@@ -210,10 +230,10 @@ static NSManagedObjectContext *_mainQueueContext;
 + (NSDictionary *)migrationOptionsUsingSQLiteJournalMode:(BOOL)useJournal {
     NSString *journalModeChoice = useJournal ? @"WAL" : @"DELETE";
     return @{
-               NSMigratePersistentStoresAutomaticallyOption: @YES,
-               NSInferMappingModelAutomaticallyOption: @YES,
-               NSSQLitePragmasOption: @{@"journal_mode": journalModeChoice}
-    };
+             NSMigratePersistentStoresAutomaticallyOption: @YES,
+             NSInferMappingModelAutomaticallyOption: @YES,
+             NSSQLitePragmasOption: @{@"journal_mode": journalModeChoice}
+             };
 }
 
 #pragma mark - Core Data Save
@@ -287,7 +307,7 @@ static NSManagedObjectContext *_mainQueueContext;
 }
 
 + (NSArray *)kern_executeFetchRequest:(NSFetchRequest *)fetchRequest {
-    NSError *error   = nil;
+    NSError *error = nil;
     NSArray *results = [[self sharedThreadedContext] executeFetchRequest:fetchRequest error:&error];
     
     if (error) {
@@ -394,7 +414,6 @@ static NSManagedObjectContext *_mainQueueContext;
 
 @end
 
-
 #pragma mark - Testing -
 
 @implementation Kern (Testing)
@@ -434,6 +453,9 @@ static NSManagedObjectContext *_mainQueueContext;
     } @catch (NSError *error) {
         NSLog(@"Error dropping the sqlite database.  Error details:\n%@", error);
     }
+    
+    // clean up
+    [Kern cleanUp];
 }
 
 @end

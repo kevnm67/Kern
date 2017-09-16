@@ -1,7 +1,7 @@
 
 #import "Kern.h"
 #import "NSURL+DoNotBackup.h"
-#import "KernMacros.h"
+//#import "KernMacros.h"
 
 NSString *const kKernDefaultStoreFileName = @"KernDataStore.sqlite";
 NSString *const kKernDefaultBaseName      = @"Kern";
@@ -201,6 +201,10 @@ static NSManagedObjectContext *_mainQueueContext;
   
     NSURL *destinationURL = [self urlForStoreName:defaultStore];
     
+    if (![self verifyResourcePath:defaultStore]) {
+        return;
+    }
+    
     if (![fileManager fileExistsAtPath:destinationURL.path]) {
         NSError *error;
         
@@ -217,6 +221,18 @@ static NSManagedObjectContext *_mainQueueContext;
             [_mainQueueContext.persistentStoreCoordinator setMetadata:dictionary forPersistentStore:_persistentStore];
         }
     }
+}
+
++ (BOOL)verifyResourcePath:(NSString *)defaultStore {
+    NSString *resourcePath = [[NSBundle mainBundle] pathForResource:defaultStore ofType:@"sqlite"];
+    
+    if (!resourcePath) {
+        NSLog(@"Failed to copy the default SQLite store: %@\n fall back: creating a new one for you...", defaultStore);
+        
+        return NO;
+    }
+    
+    return YES;
 }
 
 + (void)cleanUp {
@@ -471,26 +487,7 @@ static NSManagedObjectContext *_mainQueueContext;
 }
 
 + (void)drop {
-    // Model has probably changed, lets delete the old one and try again
-    NSError *removeSQLiteFilesError = nil;
-    NSString *fileName = [self applicationDocumentsDirectoryFileWithExtension:@"sqlite"].stringByDeletingPathExtension ? : [self baseName];
-    
-    
-    NSURL *baseURL = [[self applicationDocumentsDirectory] URLByAppendingPathComponent:fileName];
-
-    NSURL *sqlStoreURL = [self urlForStoreName:fileName];
-    NSURL *shmURL  = [baseURL URLByAppendingPathExtension:@"sqlite-shm"];
-    NSURL *walURL  = [baseURL URLByAppendingPathExtension:@"sqlite-wal"];
-
-    
-    if ([self removeSQLiteFilesAtStoreURL:sqlStoreURL error:&removeSQLiteFilesError]) {
-        NSLog(@"removed swl file\n%@\n", sqlStoreURL);
-        return;
-    }
-    
-    ALog(@"ERROR: Could not remove SQLite files\n%@", [removeSQLiteFilesError localizedDescription]);
-    
-//    [self dropDatabase:[self applicationDocumentsDirectoryFileWithExtension:@"sqlite"].stringByDeletingPathExtension ? : [self baseName]];
+    [self dropDatabase:[self applicationDocumentsDirectoryFileWithExtension:@"sqlite"].stringByDeletingPathExtension ?: [self baseName]];
 }
 
 + (void)dropDatabase:(NSString *)sqliteName {
